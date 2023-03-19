@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Transacao</title>
+</head>
+
+<body>
+    <table id="TabelaGeral">
+      <thead>
+        <tr>
+          <th>Nome</th>
+          <th>Preço</th>
+          <th>Abertura</th>
+          <th>Variação</th>
+        </tr>
+      </thead>
+      <tbody>
+      </tbody>
+    </table>
+
+    <h1>COMPRA E VENDA</h1>
+    <table id="TabelaCompra">
+      <thead>
+        <tr>
+          <th>Usuario</th>
+          <th>Empresa</th>
+          <th>Açao</th>
+        </tr>
+      </thead>
+      <tbody>
+      </tbody>
+    </table>
+
+    <style>
+      /* estilo para a tabela */
+      table {
+        border-collapse: collapse;
+        width: 100%;
+      }
+
+      th, td {
+        text-align: left;
+        padding: 8px;
+      }
+
+      th {
+        background-color: #008CBA;
+        color: white;
+      }
+
+      /* estilo para o botão de compra */
+      .btn-compra {
+        background-color: green;
+        color: white;
+        padding: 5px 10px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+        margin-right: 5px;
+      }
+
+      /* estilo para o botão de venda */
+      .btn-venda {
+        background-color: red;
+        color: white;
+        padding: 5px 10px;
+        border: none;
+        border-radius: 5px;
+        cursor: pointer;
+      }
+    </style>
+
+  <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+  <script>
+    function updateTables(dados) {
+        const tabela = document.getElementById("TabelaGeral");
+        const linhaExistente = tabela.querySelector(`td[data-nome="${dados.nome}"]`);
+        if (linhaExistente) {
+          const tr = linhaExistente.parentNode;
+          const tds = tr.querySelectorAll('td');
+          tds[0].textContent = dados.nome;
+          tds[1].textContent = "R$ " + ((dados.preco) * 1.0).toFixed(2);
+          tds[2].textContent = "R$ " + ((dados.abertura) * 1.0).toFixed(2);
+          tds[3].textContent = (((dados.preco - dados.abertura) / dados.abertura) * 100).toFixed(2) + "%";
+        } else {
+          const novaLinha = tabela.insertRow(-1);
+          novaLinha.innerHTML = `
+                  <td data-nome="${dados.nome}">${dados.nome}</td>
+                  <td>R$ ${((dados.preco) * 1.0).toFixed(2)}</td>
+                  <td>R$ ${((dados.abertura) * 1.0).toFixed(2)}</td>
+                  <td>${(((dados.preco - dados.abertura) / dados.abertura) * 100).toFixed(2)}%</td>
+                  <td><button class="btn-compra" id="compra_${dados.nome}" onclick="compra(this.id)">Comprar</button></td>
+                  <td><button class="btn-venda" id="venda_${dados.nome}" onclick="venda(this.id)">Vender</button></td>
+                  `;
+        }
+    }
+    var socket = io();
+    socket.on('changeStocks', (msg) => updateTables(JSON.parse(msg)))
+    
+    socket.on('compra', (dados)=>{
+      dados=JSON.parse(dados)
+      const tabela = document.getElementById("TabelaCompra");
+        const novaLinha = tabela.insertRow(-1);
+        novaLinha.innerHTML = `
+                <td data-nome="${dados.id}">${dados.id}</td>
+                <td>${dados.compra}</td>
+                <td>Comprou</td>
+                `;
+    })
+
+    socket.on('venda', (dados)=>{
+      dados=JSON.parse(dados)
+      const tabela = document.getElementById("TabelaCompra");
+        const novaLinha = tabela.insertRow(-1);
+        novaLinha.innerHTML = `
+                <td data-nome="${dados.id}">${dados.id}</td>
+                <td>${dados.venda}</td>
+                <td>Venda</td>
+                `;
+    })
+
+    function compra(id){
+      let name = id.substr(7)
+      socket.emit('compra', name)
+    }
+
+    function venda(id){
+      let name = id.substr(6)
+      socket.emit('venda', name)
+    }
+  </script>
+
+</html>
